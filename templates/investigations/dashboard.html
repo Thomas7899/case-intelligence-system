@@ -1,0 +1,183 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1>Dashboard</h1>
+        <p class="text-muted">Willkommen im Palantir Ermittlungssystem</p>
+    </div>
+</div>
+
+<!-- Statistiken -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_cases }}</h4>
+                        <p>Fälle gesamt</p>
+                    </div>
+                    <div>
+                        <i class="bi bi-folder fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-danger">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ open_cases }}</h4>
+                        <p>Offene Fälle</p>
+                    </div>
+                    <div>
+                        <i class="bi bi-exclamation-triangle fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ in_progress_cases }}</h4>
+                        <p>In Bearbeitung</p>
+                    </div>
+                    <div>
+                        <i class="bi bi-clock fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ high_risk_persons|length }}</h4>
+                        <p>Hochrisiko-Personen</p>
+                    </div>
+                    <div>
+                        <i class="bi bi-shield-exclamation fs-1"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Aktuelle Fälle -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-folder"></i> Aktuelle Fälle</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_cases %}
+                    <div class="list-group">
+                        {% for case in recent_cases %}
+                            <a href="{% url 'investigations:case_detail' case.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ case.case_number }}</h6>
+                                    <small class="case-status-{{ case.status }}">{{ case.get_status_display }}</small>
+                                </div>
+                                <p class="mb-1">{{ case.title }}</p>
+                                <small>{{ case.created_at|date:"d.m.Y H:i" }}</small>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine aktuellen Fälle vorhanden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Hochrisiko-Personen -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-shield-exclamation"></i> Hochrisiko-Personen</h5>
+            </div>
+            <div class="card-body">
+                {% if high_risk_persons %}
+                    <div class="list-group">
+                        {% for person in high_risk_persons %}
+                            <a href="{% url 'entities:person_detail' person.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ person.full_name }}</h6>
+                                    <span class="badge bg-danger">Risiko: {{ person.risk_level }}</span>
+                                </div>
+                                {% if person.birth_date %}
+                                    <small>Alter: {{ person.age }} Jahre</small>
+                                {% endif %}
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Hochrisiko-Personen vorhanden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kommende Ermittlungsmaßnahmen -->
+{% if upcoming_investigations %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-calendar-check"></i> Kommende Ermittlungsmaßnahmen</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Datum</th>
+                                <th>Maßnahme</th>
+                                <th>Fall</th>
+                                <th>Zuständig</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for investigation in upcoming_investigations %}
+                                <tr>
+                                    <td>{{ investigation.planned_date|date:"d.m.Y H:i" }}</td>
+                                    <td>{{ investigation.title }}</td>
+                                    <td>
+                                        <a href="{% url 'investigations:case_detail' investigation.case.id %}">
+                                            {{ investigation.case.case_number }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if investigation.assigned_to %}
+                                            {{ investigation.assigned_to.username }}
+                                        {% else %}
+                                            <span class="text-muted">Nicht zugewiesen</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

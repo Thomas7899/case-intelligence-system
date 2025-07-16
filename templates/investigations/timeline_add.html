@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Zeitachse-Ereignis hinzufügen - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1><i class="bi bi-clock-history"></i> Zeitachse-Ereignis hinzufügen</h1>
+            <a href="{% url 'investigations:case_detail' case.id %}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Zurück zum Fall
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-plus-circle"></i> Neues Ereignis für Fall {{ case.case_number }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="datetime" class="form-label">Datum und Zeit <span class="text-danger">*</span></label>
+                        <input type="datetime-local" class="form-control" id="datetime" name="datetime" required>
+                        <div class="form-text">Wann ist das Ereignis aufgetreten?</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Titel <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title" required placeholder="Kurze Beschreibung des Ereignisses">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Beschreibung <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="description" name="description" rows="4" required placeholder="Detaillierte Beschreibung des Ereignisses"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="related_person" class="form-label">Beteiligte Person</label>
+                                <select class="form-select" id="related_person" name="related_person">
+                                    <option value="">Keine Person ausgewählt</option>
+                                    {% for person in persons %}
+                                        <option value="{{ person.id }}">{{ person.full_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="related_location" class="form-label">Ort</label>
+                                <select class="form-select" id="related_location" name="related_location">
+                                    <option value="">Kein Ort ausgewählt</option>
+                                    {% for location in locations %}
+                                        <option value="{{ location.id }}">{{ location.street }}, {{ location.city }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'investigations:case_detail' case.id %}" class="btn btn-secondary">
+                            <i class="bi bi-x"></i> Abbrechen
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check"></i> Ereignis hinzufügen
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-info-circle"></i> Fall-Informationen</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <small class="text-muted">Fallnummer</small>
+                    <div><strong>{{ case.case_number }}</strong></div>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted">Titel</small>
+                    <div>{{ case.title }}</div>
+                </div>
+                
+                <div class="mb-3">
+                    <small class="text-muted">Status</small>
+                    <div>
+                        {% if case.status == 'open' %}
+                            <span class="badge bg-success">Offen</span>
+                        {% elif case.status == 'in_progress' %}
+                            <span class="badge bg-primary">In Bearbeitung</span>
+                        {% elif case.status == 'closed' %}
+                            <span class="badge bg-secondary">Abgeschlossen</span>
+                        {% elif case.status == 'suspended' %}
+                            <span class="badge bg-warning">Ausgesetzt</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="bi bi-lightbulb"></i> Tipps</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check text-success"></i> Seien Sie präzise bei der Zeitangabe</li>
+                    <li><i class="bi bi-check text-success"></i> Verwenden Sie aussagekräftige Titel</li>
+                    <li><i class="bi bi-check text-success"></i> Beschreiben Sie alle relevanten Details</li>
+                    <li><i class="bi bi-check text-success"></i> Verknüpfen Sie Personen und Orte wenn möglich</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set current datetime as default
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const hours = String(now.getHours()).padStart(2, '0');
+    const minutes = String(now.getMinutes()).padStart(2, '0');
+    
+    const datetimeInput = document.getElementById('datetime');
+    datetimeInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+});
+</script>
+{% endblock %}

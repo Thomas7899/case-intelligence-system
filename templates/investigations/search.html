@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{% block title %}Suche - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1><i class="bi bi-search"></i> Globale Suche</h1>
+        <p class="text-muted">Durchsuchen Sie alle Entitäten und Fälle im System</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-search"></i> Suchbereich</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="mb-4">
+                    <div class="input-group">
+                        <input type="text" class="form-control form-control-lg" name="q" value="{{ query }}" placeholder="Suchbegriff eingeben... (Name, Aktenzeichen, Kennzeichen, etc.)">
+                        <button class="btn btn-primary btn-lg" type="submit">
+                            <i class="bi bi-search"></i> Suchen
+                        </button>
+                    </div>
+                    <small class="form-text text-muted mt-2">
+                        Suche durchsucht Personen, Fälle, Fahrzeuge und Adressen gleichzeitig
+                    </small>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if query %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Suchergebnisse für: <strong>"{{ query }}"</strong>
+        </div>
+    </div>
+</div>
+
+<!-- Personen-Ergebnisse -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-people"></i> Personen 
+                    {% if results.persons %}
+                        <span class="badge bg-primary">{{ results.persons|length }}</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if results.persons %}
+                    <div class="list-group">
+                        {% for person in results.persons %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <a href="{% url 'entities:person_detail' person.id %}" class="text-decoration-none">
+                                            {{ person.full_name }}
+                                        </a>
+                                    </h6>
+                                    <p class="mb-1">
+                                        <small class="text-muted">
+                                            {% if person.age %}{{ person.age }} Jahre{% endif %}
+                                            {% if person.known_aliases %} | Alias: {{ person.known_aliases }}{% endif %}
+                                        </small>
+                                    </p>
+                                </div>
+                                <span class="badge bg-{% if person.risk_level == 0 %}success{% elif person.risk_level == 1 %}info{% elif person.risk_level == 2 %}warning{% elif person.risk_level == 3 %}danger{% else %}dark{% endif %}">
+                                    Risiko: {{ person.risk_level }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Personen gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Fälle-Ergebnisse -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-folder"></i> Fälle 
+                    {% if results.cases %}
+                        <span class="badge bg-primary">{{ results.cases|length }}</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if results.cases %}
+                    <div class="list-group">
+                        {% for case in results.cases %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'investigations:case_detail' case.id %}" class="text-decoration-none">
+                                                {{ case.case_number }}
+                                            </a>
+                                        </h6>
+                                        <p class="mb-1">{{ case.title }}</p>
+                                        <small class="text-muted">{{ case.description|truncatechars:100 }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-{% if case.status == 'open' %}success{% elif case.status == 'in_progress' %}primary{% elif case.status == 'closed' %}secondary{% else %}warning{% endif %}">
+                                            {{ case.get_status_display }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">{{ case.created_at|date:"d.m.Y" }}</small>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Fälle gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fahrzeuge und Adressen -->
+<div class="row mt-3">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-car-front"></i> Fahrzeuge 
+                    {% if results.vehicles %}
+                        <span class="badge bg-primary">{{ results.vehicles|length }}</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if results.vehicles %}
+                    <div class="list-group">
+                        {% for vehicle in results.vehicles %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-1">
+                                            <strong>{{ vehicle.license_plate }}</strong>
+                                        </h6>
+                                        <p class="mb-1">{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</p>
+                                        <small class="text-muted">
+                                            {% if vehicle.owner %}
+                                                Besitzer: <a href="{% url 'entities:person_detail' vehicle.owner.id %}">{{ vehicle.owner.full_name }}</a>
+                                            {% else %}
+                                                Besitzer unbekannt
+                                            {% endif %}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-info">{{ vehicle.get_vehicle_type_display }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Fahrzeuge gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-geo-alt"></i> Adressen 
+                    {% if results.addresses %}
+                        <span class="badge bg-primary">{{ results.addresses|length }}</span>
+                    {% endif %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if results.addresses %}
+                    <div class="list-group">
+                        {% for address in results.addresses %}
+                            <div class="list-group-item">
+                                <h6 class="mb-1">{{ address.full_address }}</h6>
+                                <p class="mb-1">{{ address.city }}, {{ address.postal_code }}</p>
+                                <small class="text-muted">
+                                    {% if address.personaddress_set.all %}
+                                        Bewohner: 
+                                        {% for person_address in address.personaddress_set.all %}
+                                            <a href="{% url 'entities:person_detail' person_address.person.id %}">{{ person_address.person.full_name }}</a>{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        Keine bekannten Bewohner
+                                    {% endif %}
+                                </small>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Adressen gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Zusammenfassung -->
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-bar-chart"></i> Suchergebnis-Übersicht</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-primary">{{ results.persons|length|default:0 }}</h3>
+                                <p class="mb-0">Personen</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-success">{{ results.cases|length|default:0 }}</h3>
+                                <p class="mb-0">Fälle</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-info">{{ results.vehicles|length|default:0 }}</h3>
+                                <p class="mb-0">Fahrzeuge</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h3 class="text-warning">{{ results.addresses|length|default:0 }}</h3>
+                                <p class="mb-0">Adressen</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% else %}
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="text-center py-5">
+            <i class="bi bi-search fs-1 text-muted"></i>
+            <h3 class="mt-3 text-muted">Globale Suche</h3>
+            <p class="text-muted">Geben Sie einen Suchbegriff ein, um alle Entitäten im System zu durchsuchen.</p>
+            <div class="mt-4">
+                <h5>Suchbare Kategorien:</h5>
+                <div class="row mt-3">
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="bi bi-people fs-2 text-primary"></i>
+                                <h6 class="mt-2">Personen</h6>
+                                <small class="text-muted">Namen, Aliase</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="bi bi-folder fs-2 text-success"></i>
+                                <h6 class="mt-2">Fälle</h6>
+                                <small class="text-muted">Aktenzeichen, Titel</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="bi bi-car-front fs-2 text-info"></i>
+                                <h6 class="mt-2">Fahrzeuge</h6>
+                                <small class="text-muted">Kennzeichen, Marke</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light">
+                            <div class="card-body text-center">
+                                <i class="bi bi-geo-alt fs-2 text-warning"></i>
+                                <h6 class="mt-2">Adressen</h6>
+                                <small class="text-muted">Straße, Stadt, PLZ</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fokus auf Suchfeld setzen
+    const searchInput = document.querySelector('input[name="q"]');
+    if (searchInput && !searchInput.value) {
+        searchInput.focus();
+    }
+    
+    // Enter-Taste für Suche
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            this.form.submit();
+        }
+    });
+});
+</script>
+{% endblock %}

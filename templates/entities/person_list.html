@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+
+{% block title %}Personen - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="bi bi-people"></i> Personen</h1>
+                <p class="text-muted">Verwaltung aller Personen im System</p>
+            </div>
+            <div>
+                <a href="{% url 'entities:person_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Neue Person
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Suche</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               placeholder="Name oder Alias..." value="{{ search_query }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="risk_level" class="form-label">Risikostufe</label>
+                        <select class="form-select" id="risk_level" name="risk_level">
+                            <option value="">Alle Risikostufen</option>
+                            {% for value, label in risk_choices %}
+                                <option value="{{ value }}" {% if current_risk == value|stringformat:"s" %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i> Filtern
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <a href="{% url 'entities:person_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Zurücksetzen
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Personenliste -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-list"></i> Personen ({{ persons|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if persons %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Alter</th>
+                                    <th>Risikostufe</th>
+                                    <th>Erstellt</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for person in persons %}
+                                    <tr>
+                                        <td>
+                                            <div>
+                                                <strong>{{ person.full_name }}</strong>
+                                                {% if person.known_aliases %}
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        Alias: {{ person.known_aliases|truncatechars:30 }}
+                                                    </small>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if person.age %}
+                                                {{ person.age }} Jahre
+                                            {% else %}
+                                                <span class="text-muted">Unbekannt</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if person.risk_level == 0 %}success{% elif person.risk_level == 1 %}warning{% elif person.risk_level == 2 %}primary{% elif person.risk_level == 3 %}danger{% else %}dark{% endif %}">
+                                                {{ person.get_risk_level_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small>{{ person.created_at|date:"d.m.Y" }}</small>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'entities:person_detail' person.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-eye"></i> Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-people fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Keine Personen gefunden.</p>
+                        <a href="{% url 'entities:person_create' %}" class="btn btn-primary">
+                            <i class="bi bi-plus-circle"></i> Erste Person hinzufügen
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

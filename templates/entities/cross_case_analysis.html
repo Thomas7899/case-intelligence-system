@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}Fall-übergreifende Analyse - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1><i class="bi bi-diagram-2"></i> Fall-übergreifende Analyse</h1>
+        <p class="text-muted">Identifikation von Mustern und Verbindungen zwischen verschiedenen Fällen</p>
+    </div>
+</div>
+
+<!-- Übersichts-Statistiken -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="card-title text-primary">{{ total_multi_case_persons }}</h3>
+                <p class="card-text">Mehrfach-Beteiligte</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="card-title text-warning">{{ total_network_hubs }}</h3>
+                <p class="card-text">Netzwerk-Knotenpunkte</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <h3 class="card-title text-success">{{ total_case_clusters }}</h3>
+                <p class="card-text">Fall-Cluster</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mehrfach-Beteiligte Personen -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-person-exclamation"></i> Mehrfach-Beteiligte Personen</h5>
+                <p class="card-subtitle text-muted">Personen, die in mehreren Fällen involviert sind</p>
+            </div>
+            <div class="card-body">
+                {% if person_analysis %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Person</th>
+                                    <th>Anzahl Fälle</th>
+                                    <th>Rollen</th>
+                                    <th>Falltypen</th>
+                                    <th>Zeitspanne</th>
+                                    <th>Risikostufe</th>
+                                    <th>Aktionen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for analysis in person_analysis %}
+                                <tr>
+                                    <td>
+                                        <strong>{{ analysis.person.full_name }}</strong>
+                                        <br>
+                                        <small class="text-muted">ID: {{ analysis.person.id }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary">{{ analysis.case_count }}</span>
+                                    </td>
+                                    <td>
+                                        {% for role in analysis.roles %}
+                                            <span class="badge bg-secondary me-1">{{ role }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% for case_type in analysis.case_types %}
+                                            <span class="badge bg-info me-1">{{ case_type }}</span>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        {% if analysis.date_range.earliest %}
+                                            <small>
+                                                {{ analysis.date_range.earliest|date:"d.m.Y" }} - 
+                                                {{ analysis.date_range.latest|date:"d.m.Y" }}
+                                            </small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if analysis.person.risk_level >= 3 %}
+                                            <span class="badge bg-danger">Hoch</span>
+                                        {% elif analysis.person.risk_level >= 2 %}
+                                            <span class="badge bg-warning">Mittel</span>
+                                        {% else %}
+                                            <span class="badge bg-success">Niedrig</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'entities:person_detail' analysis.person.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                                        <a href="{% url 'entities:relationship_graph' %}?person={{ analysis.person.id }}" class="btn btn-sm btn-outline-secondary">Netzwerk</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine mehrfach-beteiligten Personen gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Netzwerk-Knotenpunkte -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-diagram-3"></i> Netzwerk-Knotenpunkte</h5>
+                <p class="card-subtitle text-muted">Personen mit vielen Verbindungen zu anderen</p>
+            </div>
+            <div class="card-body">
+                {% if network_hubs %}
+                    <div class="row">
+                        {% for hub in network_hubs %}
+                        <div class="col-md-4 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ hub.full_name }}</h6>
+                                    <p class="card-text">
+                                        <span class="badge bg-primary">{{ hub.relationship_count }} Verbindungen</span>
+                                        <br>
+                                        <small class="text-muted">Risikostufe: {{ hub.get_risk_level_display }}</small>
+                                    </p>
+                                    <a href="{% url 'entities:person_detail' hub.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Netzwerk-Knotenpunkte gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Fall-Cluster -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-collection"></i> Fall-Cluster</h5>
+                <p class="card-subtitle text-muted">Fälle mit gemeinsamen Beteiligten</p>
+            </div>
+            <div class="card-body">
+                {% if case_clusters %}
+                    <div class="accordion" id="caseClusterAccordion">
+                        {% for cluster in case_clusters %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false" aria-controls="collapse{{ forloop.counter }}">
+                                    <strong>{{ cluster.main_case.case_number }}</strong>
+                                    <span class="ms-2">- {{ cluster.main_case.title }}</span>
+                                    <span class="badge bg-primary ms-auto">{{ cluster.related_cases|length }} verwandte Fälle</span>
+                                </button>
+                            </h2>
+                            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse" aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#caseClusterAccordion">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6>Hauptfall</h6>
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">{{ cluster.main_case.title }}</h6>
+                                                    <p class="card-text">
+                                                        <small class="text-muted">
+                                                            {{ cluster.main_case.get_case_type_display }} | 
+                                                            {{ cluster.main_case.get_status_display }} | 
+                                                            {{ cluster.main_case.incident_date|date:"d.m.Y" }}
+                                                        </small>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <h6>Verwandte Fälle</h6>
+                                            {% for related in cluster.related_cases %}
+                                            <div class="card mb-2">
+                                                <div class="card-body">
+                                                    <h6 class="card-title">{{ related.case.case_number }}</h6>
+                                                    <p class="card-text">
+                                                        {{ related.case.title }}
+                                                        <br>
+                                                        <span class="badge bg-success">{{ related.common_persons }} gemeinsame Personen</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            {% endfor %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Fall-Cluster gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aktionen -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-tools"></i> Weitere Analysen</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <a href="{% url 'entities:relationship_graph' %}?mode=cross_case" class="btn btn-outline-primary w-100">
+                            <i class="bi bi-diagram-3"></i> Netzwerk-Visualisierung
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'entities:relationship_graph' %}?risk_level=3" class="btn btn-outline-warning w-100">
+                            <i class="bi bi-shield-exclamation"></i> Hoch-Risiko Analyse
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a href="{% url 'investigations:dashboard' %}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-speedometer2"></i> Zurück zum Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,233 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ person.full_name }} - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'entities:person_list' %}">Personen</a></li>
+                <li class="breadcrumb-item active">{{ person.full_name }}</li>
+            </ol>
+        </nav>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <!-- Personen-Info -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-person-circle"></i> {{ person.full_name }}</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row">
+                    <dt class="col-sm-4">Name:</dt>
+                    <dd class="col-sm-8">{{ person.full_name }}</dd>
+                    
+                    {% if person.birth_date %}
+                    <dt class="col-sm-4">Geburtsdatum:</dt>
+                    <dd class="col-sm-8">{{ person.birth_date|date:"d.m.Y" }}</dd>
+                    
+                    <dt class="col-sm-4">Alter:</dt>
+                    <dd class="col-sm-8">{{ person.age }} Jahre</dd>
+                    {% endif %}
+                    
+                    {% if person.birth_place %}
+                    <dt class="col-sm-4">Geburtsort:</dt>
+                    <dd class="col-sm-8">{{ person.birth_place }}</dd>
+                    {% endif %}
+                    
+                    {% if person.id_number %}
+                    <dt class="col-sm-4">Ausweis-Nr.:</dt>
+                    <dd class="col-sm-8">{{ person.id_number }}</dd>
+                    {% endif %}
+                    
+                    <dt class="col-sm-4">Risikostufe:</dt>
+                    <dd class="col-sm-8">
+                        <span class="badge bg-{% if person.risk_level == 0 %}success{% elif person.risk_level == 1 %}warning{% elif person.risk_level == 2 %}primary{% elif person.risk_level == 3 %}danger{% else %}dark{% endif %}">
+                            {{ person.get_risk_level_display }}
+                        </span>
+                    </dd>
+                </dl>
+                
+                {% if person.known_aliases %}
+                <div class="mt-3">
+                    <strong>Bekannte Aliase:</strong>
+                    <p class="text-muted">{{ person.known_aliases }}</p>
+                </div>
+                {% endif %}
+                
+                {% if person.notes %}
+                <div class="mt-3">
+                    <strong>Notizen:</strong>
+                    <p class="text-muted">{{ person.notes }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <!-- Fallbeteiligungen -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5><i class="bi bi-folder"></i> Fallbeteiligungen</h5>
+            </div>
+            <div class="card-body">
+                {% if involvements %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Aktenzeichen</th>
+                                    <th>Titel</th>
+                                    <th>Rolle</th>
+                                    <th>Status</th>
+                                    <th>Datum</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for involvement in involvements %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'investigations:case_detail' involvement.case.id %}">
+                                                {{ involvement.case.case_number }}
+                                            </a>
+                                        </td>
+                                        <td>{{ involvement.case.title }}</td>
+                                        <td>
+                                            <span class="badge bg-{% if involvement.involvement_type == 'suspect' %}danger{% elif involvement.involvement_type == 'victim' %}warning{% elif involvement.involvement_type == 'witness' %}info{% else %}secondary{% endif %}">
+                                                {{ involvement.get_involvement_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if involvement.case.status == 'open' %}danger{% elif involvement.case.status == 'in_progress' %}warning{% elif involvement.case.status == 'closed' %}success{% else %}secondary{% endif %}">
+                                                {{ involvement.case.get_status_display }}
+                                            </span>
+                                        </td>
+                                        <td>{{ involvement.case.created_at|date:"d.m.Y" }}</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Fallbeteiligungen vorhanden.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Beziehungen -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5><i class="bi bi-diagram-3"></i> Beziehungen</h5>
+            </div>
+            <div class="card-body">
+                {% if relationships_from or relationships_to %}
+                    <div class="row">
+                        {% if relationships_from %}
+                            <div class="col-md-6">
+                                <h6>Ausgehende Beziehungen</h6>
+                                <div class="list-group">
+                                    {% for rel in relationships_from %}
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ rel.person2.full_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ rel.get_relationship_type_display }}</small>
+                                            </div>
+                                            <span class="badge bg-primary">{{ rel.strength }}/5</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        {% if relationships_to %}
+                            <div class="col-md-6">
+                                <h6>Eingehende Beziehungen</h6>
+                                <div class="list-group">
+                                    {% for rel in relationships_to %}
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>{{ rel.person1.full_name }}</strong>
+                                                <br>
+                                                <small class="text-muted">{{ rel.get_relationship_type_display }}</small>
+                                            </div>
+                                            <span class="badge bg-primary">{{ rel.strength }}/5</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Beziehungen vorhanden.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Adressen -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5><i class="bi bi-geo-alt"></i> Adressen</h5>
+            </div>
+            <div class="card-body">
+                {% if addresses %}
+                    <div class="list-group">
+                        {% for address in addresses %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <strong>{{ address.address }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ address.get_address_type_display }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        {% if address.start_date %}
+                                            <small class="text-muted">seit {{ address.start_date|date:"d.m.Y" }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Adressen vorhanden.</p>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Fahrzeuge -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-car-front"></i> Fahrzeuge</h5>
+            </div>
+            <div class="card-body">
+                {% if vehicles %}
+                    <div class="list-group">
+                        {% for vehicle in vehicles %}
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <strong>{{ vehicle.license_plate }}</strong>
+                                        <br>
+                                        <small class="text-muted">{{ vehicle.make }} {{ vehicle.model }} ({{ vehicle.year }})</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <span class="badge bg-secondary">{{ vehicle.get_vehicle_type_display }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Fahrzeuge vorhanden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

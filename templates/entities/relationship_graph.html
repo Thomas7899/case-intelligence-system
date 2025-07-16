@@ -1,0 +1,625 @@
+{% extends 'base.html' %}
+
+{% block title %}Beziehungsanalyse - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <h1><i class="bi bi-diagram-3"></i> Erweiterte Beziehungsanalyse</h1>
+        <p class="text-muted">Fall-übergreifende Visualisierung der Beziehungen zwischen Personen</p>
+    </div>
+</div>
+
+<!-- Filter-Sektion -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-funnel"></i> Filter & Analyse-Optionen</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-3">
+                        <label for="case" class="form-label">Spezifischer Fall</label>
+                        <select name="case" id="case" class="form-select">
+                            <option value="">Alle Fälle</option>
+                            {% for case in available_cases %}
+                                <option value="{{ case.id }}" {% if current_case == case.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ case.case_number }} - {{ case.title }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-3">
+                        <label for="case_type" class="form-label">Falltyp</label>
+                        <select name="case_type" id="case_type" class="form-select">
+                            <option value="">Alle Typen</option>
+                            {% for value, label in case_type_choices %}
+                                <option value="{{ value }}" {% if current_case_type == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="risk_level" class="form-label">Min. Risikostufe</label>
+                        <select name="risk_level" id="risk_level" class="form-select">
+                            <option value="">Alle</option>
+                            {% for value, label in risk_level_choices %}
+                                <option value="{{ value }}" {% if current_risk_level == value|stringformat:"s" %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <label for="mode" class="form-label">Analyse-Modus</label>
+                        <select name="mode" id="mode" class="form-select">
+                            <option value="all" {% if analysis_mode == 'all' %}selected{% endif %}>Alle Personen</option>
+                            <option value="case" {% if analysis_mode == 'case' %}selected{% endif %}>Fallbezogen</option>
+                            <option value="cross_case" {% if analysis_mode == 'cross_case' %}selected{% endif %}>Fall-übergreifend</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary mt-4">
+                            <i class="bi bi-search"></i> Analysieren
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiken -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ stats.total_persons }}</h5>
+                <p class="card-text text-muted">Personen</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ stats.total_relationships }}</h5>
+                <p class="card-text text-muted">Beziehungen</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ stats.multi_case_persons }}</h5>
+                <p class="card-text text-muted">Mehrfach-Beteiligte</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center">
+            <div class="card-body">
+                <h5 class="card-title">{{ stats.high_risk_persons }}</h5>
+                <p class="card-text text-muted">Hoch-Risiko Personen</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-diagram-3"></i> Beziehungs-Netzwerk</h5>
+                <div class="card-tools">
+                    <small class="text-muted">
+                        {% if current_case %}
+                            Fall: {{ current_case }}
+                        {% elif current_case_type %}
+                            Typ: {{ current_case_type }}
+                        {% elif analysis_mode == 'cross_case' %}
+                            Fall-übergreifende Analyse
+                        {% else %}
+                            Alle Beziehungen
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="network-graph" style="height: 600px; border: 1px solid #ddd; position: relative; overflow: hidden;">
+                    {% if nodes %}
+                        <canvas id="networkCanvas" style="width: 100%; height: 100%; cursor: pointer;"></canvas>
+                        <div id="networkControls" style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+                            <button class="btn btn-sm btn-outline-primary" onclick="resetZoom()">Reset Zoom</button>
+                            <button class="btn btn-sm btn-outline-secondary" onclick="togglePhysics()">Toggle Physics</button>
+                        </div>
+                    {% else %}
+                        <div class="d-flex justify-content-center align-items-center h-100">
+                            <div class="text-center">
+                                <i class="bi bi-diagram-3 fs-1 text-muted"></i>
+                                <p class="text-muted mt-2">Keine Beziehungsdaten gefunden</p>
+                                <p class="text-muted"><small>Bitte laden Sie zuerst Beispieldaten oder passen Sie die Filter an</small></p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-list-ul"></i> Legende & Informationen</h5>
+            </div>
+            <div class="card-body">
+                <h6>Beziehungstypen</h6>
+                <div class="row">
+                    <div class="col-6">
+                        <div class="mb-2">
+                            <span class="badge bg-primary">Familie</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-success">Freund</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-info">Kollege</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-warning">Nachbar</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-2">
+                            <span class="badge bg-secondary">Bekannter</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-danger">Verdächtiger</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-dark">Zeuge</span>
+                        </div>
+                        <div class="mb-2">
+                            <span class="badge bg-light text-dark">Sonstiges</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5><i class="bi bi-people"></i> Personen</h5>
+            </div>
+            <div class="card-body">
+                {% if persons %}
+                    <div class="list-group">
+                        {% for person in persons %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ person.full_name }}</strong>
+                                    <br>
+                                    <small class="text-muted">
+                                        {% if person.age %}{{ person.age }} Jahre{% endif %}
+                                    </small>
+                                </div>
+                                <span class="badge bg-{% if person.risk_level == 0 %}success{% elif person.risk_level == 1 %}warning{% elif person.risk_level == 2 %}primary{% elif person.risk_level == 3 %}danger{% else %}dark{% endif %}">
+                                    {{ person.get_risk_level_display }}
+                                </span>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Personen gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-arrow-left-right"></i> Beziehungen</h5>
+            </div>
+            <div class="card-body">
+                {% if relationships %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Person 1</th>
+                                    <th>Beziehung</th>
+                                    <th>Person 2</th>
+                                    <th>Stärke</th>
+                                    <th>Beschreibung</th>
+                                    <th>Seit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for relationship in relationships %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'entities:person_detail' relationship.person1.id %}">
+                                                {{ relationship.person1.full_name }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-{% if relationship.relationship_type == 'family' %}primary{% elif relationship.relationship_type == 'friend' %}success{% elif relationship.relationship_type == 'colleague' %}info{% elif relationship.relationship_type == 'neighbor' %}warning{% elif relationship.relationship_type == 'suspect' %}danger{% else %}secondary{% endif %}">
+                                                {{ relationship.get_relationship_type_display }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'entities:person_detail' relationship.person2.id %}">
+                                                {{ relationship.person2.full_name }}
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2">
+                                                    {% if relationship.strength == 1 %}
+                                                        <div class="progress" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar" style="width: 20%"></div>
+                                                        </div>
+                                                    {% elif relationship.strength == 2 %}
+                                                        <div class="progress" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar" style="width: 40%"></div>
+                                                        </div>
+                                                    {% elif relationship.strength == 3 %}
+                                                        <div class="progress" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar" style="width: 60%"></div>
+                                                        </div>
+                                                    {% elif relationship.strength == 4 %}
+                                                        <div class="progress" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar" style="width: 80%"></div>
+                                                        </div>
+                                                    {% elif relationship.strength == 5 %}
+                                                        <div class="progress" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar" style="width: 100%"></div>
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="progress" style="width: 60px; height: 8px;">
+                                                            <div class="progress-bar" style="width: 0%"></div>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <small class="text-muted">{{ relationship.strength }}/5</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <small>{{ relationship.description|truncatechars:50 }}</small>
+                                        </td>
+                                        <td>
+                                            {% if relationship.start_date %}
+                                                {{ relationship.start_date|date:"d.m.Y" }}
+                                            {% else %}
+                                                <span class="text-muted">Unbekannt</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Keine Beziehungen gefunden.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="alert alert-info">
+            <h5><i class="bi bi-info-circle"></i> Geplante Erweiterungen</h5>
+            <ul class="mb-0">
+                <li><strong>Interaktive Netzwerkvisualisierung</strong> mit D3.js oder vis.js</li>
+                <li><strong>Filterung</strong> nach Beziehungstypen und Stärke</li>
+                <li><strong>Pfadanalyse</strong> zwischen Personen</li>
+                <li><strong>Clustering</strong> von Personengruppen</li>
+                <li><strong>Zeitbasierte Analyse</strong> der Beziehungen</li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Erweiterte Netzwerkvisualisierung
+document.addEventListener('DOMContentLoaded', function() {
+    const canvas = document.getElementById('networkCanvas');
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    const container = document.getElementById('network-graph');
+    
+    // Netzwerk-Daten von Server laden
+    const nodes = {{ nodes_json|safe }};
+    const edges = {{ edges_json|safe }};
+    
+    // Netzwerk-Variablen
+    let zoom = 1;
+    let offsetX = 0;
+    let offsetY = 0;
+    let isDragging = false;
+    let dragStart = { x: 0, y: 0 };
+    let physicsEnabled = true;
+    
+    // Canvas-Größe anpassen
+    function resizeCanvas() {
+        const rect = container.getBoundingClientRect();
+        canvas.width = rect.width - 2;
+        canvas.height = rect.height - 2;
+        initializePositions();
+        drawNetwork();
+    }
+    
+    // Positionen für Knoten initialisieren (mit mehr Platz)
+    const nodePositions = {};
+    
+    function initializePositions() {
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(canvas.width, canvas.height) / 2.5; // Größerer Radius
+        
+        // Knoten in einem Kreis verteilen mit mehr Abstand
+        nodes.forEach((node, index) => {
+            const angle = (index * 2 * Math.PI) / nodes.length;
+            const x = centerX + radius * Math.cos(angle);
+            const y = centerY + radius * Math.sin(angle);
+            
+            nodePositions[node.id] = {
+                x: x,
+                y: y,
+                vx: 0, // Geschwindigkeit für Physik
+                vy: 0,
+                fx: 0, // Kraft für Physik
+                fy: 0,
+                ...node
+            };
+        });
+    }
+    
+    // Physik-Simulation für bessere Verteilung
+    function updatePhysics() {
+        if (!physicsEnabled) return;
+        
+        const nodes = Object.values(nodePositions);
+        const repulsion = 5000; // Abstoßungskraft
+        const attraction = 0.1; // Anziehungskraft für verbundene Knoten
+        const damping = 0.9; // Dämpfung
+        
+        // Kräfte zurücksetzen
+        nodes.forEach(node => {
+            node.fx = 0;
+            node.fy = 0;
+        });
+        
+        // Abstoßung zwischen allen Knoten
+        for (let i = 0; i < nodes.length; i++) {
+            for (let j = i + 1; j < nodes.length; j++) {
+                const dx = nodes[i].x - nodes[j].x;
+                const dy = nodes[i].y - nodes[j].y;
+                const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+                
+                if (distance < 200) { // Nur wenn Knoten zu nah sind
+                    const force = repulsion / (distance * distance);
+                    const fx = (dx / distance) * force;
+                    const fy = (dy / distance) * force;
+                    
+                    nodes[i].fx += fx;
+                    nodes[i].fy += fy;
+                    nodes[j].fx -= fx;
+                    nodes[j].fy -= fy;
+                }
+            }
+        }
+        
+        // Anziehung für verbundene Knoten
+        edges.forEach(edge => {
+            const fromNode = nodePositions[edge.from];
+            const toNode = nodePositions[edge.to];
+            
+            if (fromNode && toNode) {
+                const dx = toNode.x - fromNode.x;
+                const dy = toNode.y - fromNode.y;
+                const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+                const targetDistance = 150; // Gewünschte Distanz
+                
+                const force = attraction * (distance - targetDistance);
+                const fx = (dx / distance) * force;
+                const fy = (dy / distance) * force;
+                
+                fromNode.fx += fx;
+                fromNode.fy += fy;
+                toNode.fx -= fx;
+                toNode.fy -= fy;
+            }
+        });
+        
+        // Geschwindigkeit und Position aktualisieren
+        nodes.forEach(node => {
+            node.vx = (node.vx + node.fx) * damping;
+            node.vy = (node.vy + node.fy) * damping;
+            node.x += node.vx;
+            node.y += node.vy;
+            
+            // Grenzen des Canvas
+            const margin = 50;
+            if (node.x < margin) node.x = margin;
+            if (node.x > canvas.width - margin) node.x = canvas.width - margin;
+            if (node.y < margin) node.y = margin;
+            if (node.y > canvas.height - margin) node.y = canvas.height - margin;
+        });
+    }
+    
+    // Netzwerk zeichnen
+    function drawNetwork() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Transformation für Zoom und Pan
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(zoom, zoom);
+        
+        // Edges (Verbindungen) zeichnen
+        edges.forEach(edge => {
+            const fromNode = nodePositions[edge.from];
+            const toNode = nodePositions[edge.to];
+            
+            if (fromNode && toNode) {
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
+                
+                // Farbe basierend auf Beziehungstyp
+                let color = '#6c757d';
+                switch(edge.type) {
+                    case 'family': color = '#0d6efd'; break;
+                    case 'friend': color = '#198754'; break;
+                    case 'colleague': color = '#17a2b8'; break;
+                    case 'neighbor': color = '#ffc107'; break;
+                    case 'suspect': color = '#dc3545'; break;
+                    default: color = '#6c757d';
+                }
+                
+                ctx.strokeStyle = color;
+                ctx.lineWidth = Math.max(1, edge.strength || 1);
+                ctx.stroke();
+                
+                // Label für Beziehung (nur bei hohem Zoom)
+                if (zoom > 0.8) {
+                    const midX = (fromNode.x + toNode.x) / 2;
+                    const midY = (fromNode.y + toNode.y) / 2;
+                    ctx.fillStyle = color;
+                    ctx.font = '12px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(edge.label, midX, midY - 5);
+                }
+            }
+        });
+        
+        // Nodes (Personen) zeichnen
+        Object.values(nodePositions).forEach(node => {
+            // Größerer Kreis
+            const radius = 25;
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, radius, 0, 2 * Math.PI);
+            
+            // Farbe basierend auf Risiko-Level
+            let fillColor = '#198754';
+            switch(node.risk_level) {
+                case 0: fillColor = '#198754'; break;
+                case 1: fillColor = '#17a2b8'; break;
+                case 2: fillColor = '#ffc107'; break;
+                case 3: fillColor = '#dc3545'; break;
+                case 4: fillColor = '#6f42c1'; break;
+                default: fillColor = '#6c757d';
+            }
+            
+            ctx.fillStyle = fillColor;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Label für Person
+            ctx.fillStyle = '#000';
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(node.label, node.x, node.y + radius + 20);
+        });
+        
+        ctx.restore();
+    }
+    
+    // Animation Loop
+    function animate() {
+        updatePhysics();
+        drawNetwork();
+        requestAnimationFrame(animate);
+    }
+    
+    // Event-Handler
+    canvas.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+        
+        const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
+        const newZoom = Math.max(0.3, Math.min(3, zoom * zoomFactor));
+        
+        // Zoom zur Mausposition
+        offsetX -= (mouseX - offsetX) * (newZoom / zoom - 1);
+        offsetY -= (mouseY - offsetY) * (newZoom / zoom - 1);
+        zoom = newZoom;
+    });
+    
+    canvas.addEventListener('mousedown', function(e) {
+        isDragging = true;
+        dragStart.x = e.clientX - offsetX;
+        dragStart.y = e.clientY - offsetY;
+    });
+    
+    canvas.addEventListener('mousemove', function(e) {
+        if (isDragging) {
+            offsetX = e.clientX - dragStart.x;
+            offsetY = e.clientY - dragStart.y;
+        }
+    });
+    
+    canvas.addEventListener('mouseup', function() {
+        isDragging = false;
+    });
+    
+    // Click-Event für Knoten
+    canvas.addEventListener('click', function(e) {
+        if (isDragging) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const mouseX = (e.clientX - rect.left - offsetX) / zoom;
+        const mouseY = (e.clientY - rect.top - offsetY) / zoom;
+        
+        Object.values(nodePositions).forEach(node => {
+            const distance = Math.sqrt(Math.pow(mouseX - node.x, 2) + Math.pow(mouseY - node.y, 2));
+            if (distance < 25) {
+                window.location.href = `/entities/persons/${node.id}/`;
+            }
+        });
+    });
+    
+    // Globale Funktionen für Buttons
+    window.resetZoom = function() {
+        zoom = 1;
+        offsetX = 0;
+        offsetY = 0;
+        initializePositions();
+    };
+    
+    window.togglePhysics = function() {
+        physicsEnabled = !physicsEnabled;
+        if (physicsEnabled) {
+            document.querySelector('#networkControls button:last-child').textContent = 'Disable Physics';
+        } else {
+            document.querySelector('#networkControls button:last-child').textContent = 'Enable Physics';
+        }
+    };
+    
+    // Resize-Event
+    window.addEventListener('resize', resizeCanvas);
+    
+    // Initialisierung
+    resizeCanvas();
+    animate();
+});
+</script>
+{% endblock %}

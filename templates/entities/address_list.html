@@ -1,0 +1,115 @@
+{% extends 'base.html' %}
+
+{% block title %}Adressen - Palantir System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1><i class="bi bi-geo-alt"></i> Adressen</h1>
+                <p class="text-muted">Verwaltung aller Adressen im System</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="GET" class="row g-3">
+                    <div class="col-md-5">
+                        <label for="search" class="form-label">Suche</label>
+                        <input type="text" class="form-control" id="search" name="search" 
+                               placeholder="Straße, Stadt oder PLZ..." value="{{ search_query }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="city" class="form-label">Stadt</label>
+                        <select class="form-select" id="city" name="city">
+                            <option value="">Alle Städte</option>
+                            {% for city in cities %}
+                                <option value="{{ city }}" {% if current_city == city %}selected{% endif %}>
+                                    {{ city }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i> Filtern
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <a href="{% url 'entities:address_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-clockwise"></i> Zurücksetzen
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Adressliste -->
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="bi bi-list"></i> Adressen ({{ addresses|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% if addresses %}
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Adresse</th>
+                                    <th>Stadt</th>
+                                    <th>PLZ</th>
+                                    <th>Land</th>
+                                    <th>Erstellt</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for address in addresses %}
+                                    <tr>
+                                        <td>
+                                            <strong>{{ address.street }} {{ address.house_number }}</strong>
+                                            {% if address.latitude and address.longitude %}
+                                                <br>
+                                                <small class="text-muted">
+                                                    <i class="bi bi-geo"></i> 
+                                                    {{ address.latitude }}, {{ address.longitude }}
+                                                </small>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ address.city }}</td>
+                                        <td>{{ address.postal_code }}</td>
+                                        <td>{{ address.country }}</td>
+                                        <td>
+                                            <small>{{ address.created_at|date:"d.m.Y" }}</small>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-geo-alt fs-1 text-muted"></i>
+                        <p class="text-muted mt-2">Keine Adressen gefunden.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
