@@ -22,7 +22,7 @@ Dieses Projekt demonstriert die Entwicklung eines **produktionsreifen Django-Sys
 
 ### 🎯 Zielstellung
 
-Das Projekt dient als **Referenzprojekt für Bewerbungen** und demonstriert:
+Das Projekt demonstriert:
 - Saubere Django-Architektur mit App-Separation
 - Durchdachte relationale Datenmodellierung
 - Service-Layer-Pattern für Business-Logik
