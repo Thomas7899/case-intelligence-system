@@ -14,6 +14,6 @@ COPY . /code
 RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
-CMD ["gunicorn", "palantir_system.wsgi:application", "--workers", "1", "--max-requests", "200", "--max-requests-jitter", "30", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "case_intelligence.wsgi:application", "--workers", "1", "--max-requests", "200", "--max-requests-jitter", "30", "--bind", "0.0.0.0:8000"]
 
 

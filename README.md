@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![Django](https://img.shields.io/badge/Django-5.2-green.svg)](https://djangoproject.com)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/Demo-Live-success.svg)](https://palantir-clone.fly.dev)
+[![Live Demo](https://img.shields.io/badge/Demo-Live-success.svg)](https://case-intelligence-system.fly.dev)
 
 ---
 
@@ -33,7 +33,7 @@ Das Projekt dient als **Referenzprojekt für Bewerbungen** und demonstriert:
 
 ## 🚀 Live Demo
 
-**[➡️ Demo starten](https://palantir-clone.fly.dev)**
+**[➡️ Demo starten](https://case-intelligence-system.fly.dev)**
 
 Nutzen Sie den **One-Click Demo-Login** auf der Login-Seite, um das System mit Beispieldaten zu erkunden.
 
@@ -46,7 +46,7 @@ Nutzen Sie den **One-Click Demo-Login** auf der Login-Seite, um das System mit B
 ### App-Struktur
 
 ```
-palantir_system/          # Django Projekt-Konfiguration
+case_intelligence/        # Django Projekt-Konfiguration
 ├── settings.py           # Environment-basierte Config
 ├── urls.py               # URL-Routing
 └── wsgi.py               # WSGI Application
@@ -140,8 +140,8 @@ class PersonAnalysisService:
 
 ```bash
 # Repository klonen
-git clone https://github.com/Thomas7899/palantir-clone.git
-cd palantir-clone
+git clone https://github.com/Thomas7899/case-intelligence-system.git
+cd case-intelligence-system
 
 # Virtual Environment
 python -m venv venv
@@ -171,7 +171,7 @@ python manage.py test entities investigations
 
 ### Demo-Umgebung
 
-Das öffentlich deployete System unter `palantir-clone.fly.dev` ist eine **isolierte Demo-Umgebung**:
+Das öffentlich deployete System unter `case-intelligence-system.fly.dev` ist eine **isolierte Demo-Umgebung**:
 
 - ✅ Alle Daten sind **fiktiv** (keine echten personenbezogenen Daten)
 - ✅ Demo-User hat **eingeschränkte Rechte** (kein Admin-Zugang)

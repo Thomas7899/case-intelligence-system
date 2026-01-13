@@ -1,11 +1,12 @@
-app = "palantir-clone"
+app = "case-intelligence-system"
 primary_region = "fra"
 
 [build]
   dockerfile = "Dockerfile"
 
 [deploy]
-  release_command = "python manage.py migrate --noinput"
+release_command = "./fly_release.sh"
+
 
 [http_service]
   internal_port = 8000

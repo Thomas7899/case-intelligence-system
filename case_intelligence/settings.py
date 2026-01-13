@@ -1,5 +1,5 @@
 """
-Django settings for palantir_system project.
+Django settings for case_intelligence project.
 """
 from pathlib import Path
 import os
@@ -17,7 +17,7 @@ DEBUG = config('DEBUG', default=False, cast=bool)
 ALLOWED_HOSTS = [
     h.strip()
     for h in str(
-        config('ALLOWED_HOSTS', default='localhost,127.0.0.1,palantir-clone.fly.dev')
+        config('ALLOWED_HOSTS', default='localhost,127.0.0.1,case-intelligence-system.fly.dev')
     ).split(',')
 ]
 
@@ -30,7 +30,7 @@ CSRF_TRUSTED_ORIGINS = [
                 'http://localhost,'
                 'http://127.0.0.1,'
                 'https://localhost,'
-                'https://palantir-clone.fly.dev'
+                'https://case-intelligence-system.fly.dev'
             ),
         )
     ).split(',')
@@ -71,7 +71,7 @@ if DEBUG and 'runserver' in sys.argv:
     INTERNAL_IPS = ["127.0.0.1"]
 
 # --- URLS, TEMPLATES, WSGI ---
-ROOT_URLCONF = 'palantir_system.urls'
+ROOT_URLCONF = 'case_intelligence.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -87,7 +87,7 @@ TEMPLATES = [
         },
     },
 ]
-WSGI_APPLICATION = 'palantir_system.wsgi.application'
+WSGI_APPLICATION = 'case_intelligence.wsgi.application'
 
 # --- DATENBANK (FLY.IO POSTGRES & LOKAL SQLITE) ---
 DATABASES = {
@@ -137,7 +137,7 @@ CORS_ALLOWED_ORIGINS = [
     for o in str(
         config(
             'CORS_ALLOWED_ORIGINS',
-            default='http://localhost:3000,http://127.0.0.1:3000,https://palantir-clone.fly.dev',
+            default='http://localhost:3000,http://127.0.0.1:3000,https://case-intelligence-system.fly.dev',
         )
     ).split(',')
 ]
