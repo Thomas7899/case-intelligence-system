@@ -154,6 +154,8 @@ Thumbs.db
 *.pem
 *.crt
 secret_key.txt
+fly_credentials.txt
+data.json
 
 # Local development settings
 local_settings.py

@@ -7,20 +7,34 @@ from decouple import config
 import dj_database_url
 import sys
 
-
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # --- PRODUKTIONS-EINSTELLUNGEN ---
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-change-me-in-production')
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = [h.strip() for h in str(config('ALLOWED_HOSTS', default='localhost,127.0.0.1')).split(',')]
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in str(config(
-    'CSRF_TRUSTED_ORIGINS',
-    default='http://localhost,http://127.0.0.1,https://localhost'
-)).split(',')]
+# Standard: lokal + Fly.io-Domain; kann per ENV/Secret überschrieben werden
+ALLOWED_HOSTS = [
+    h.strip()
+    for h in str(
+        config('ALLOWED_HOSTS', default='localhost,127.0.0.1,palantir-clone.fly.dev')
+    ).split(',')
+]
 
-
+CSRF_TRUSTED_ORIGINS = [
+    o.strip()
+    for o in str(
+        config(
+            'CSRF_TRUSTED_ORIGINS',
+            default=(
+                'http://localhost,'
+                'http://127.0.0.1,'
+                'https://localhost,'
+                'https://palantir-clone.fly.dev'
+            ),
+        )
+    ).split(',')
+]
 
 # --- APPS ---
 INSTALLED_APPS = [
@@ -55,7 +69,6 @@ if DEBUG and 'runserver' in sys.argv:
     INSTALLED_APPS += ['debug_toolbar']
     MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
     INTERNAL_IPS = ["127.0.0.1"]
-
 
 # --- URLS, TEMPLATES, WSGI ---
 ROOT_URLCONF = 'palantir_system.urls'
@@ -117,8 +130,53 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
 }
-CORS_ALLOWED_ORIGINS = ["http://localhost:3000", "http://127.0.0.1:3000"]
+
+# CORS: lokal + Fly.io-Domain, per ENV überschreibbar
+CORS_ALLOWED_ORIGINS = [
+    o.strip()
+    for o in str(
+        config(
+            'CORS_ALLOWED_ORIGINS',
+            default='http://localhost:3000,http://127.0.0.1:3000,https://palantir-clone.fly.dev',
+        )
+    ).split(',')
+]
+
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
+
+# Proxy / SSL-Konfiguration für Fly.io
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# Zusätzliche Security-Einstellungen nur in Produktion
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SECURE_HSTS_SECONDS = 3600
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+# --- LOGGING (WICHTIG! Damit 500-Fehler im Fly-Log erscheinen) ---
+if not DEBUG:
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+            },
+        },
+        'loggers': {
+            'django': {
+                'handlers': ['console'],
+                'level': 'ERROR',
+            },
+            'django.request': {
+                'handlers': ['console'],
+                'level': 'ERROR',
+                'propagate': False,
+            },
+        },
+    }
