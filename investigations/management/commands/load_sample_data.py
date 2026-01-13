@@ -8,7 +8,7 @@ from datetime import datetime as dt, timedelta
 
 
 class Command(BaseCommand):
-    help = 'Lädt Beispieldaten für das Palantir-System'
+    help = 'Lädt Beispieldaten für das Case Intelligence System'
 
     def handle(self, *args, **options):
         self.stdout.write('Lade Beispieldaten...')

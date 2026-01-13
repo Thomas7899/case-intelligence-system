@@ -6,7 +6,7 @@ import sys
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'palantir_system.settings')
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'case_intelligence.settings')
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
